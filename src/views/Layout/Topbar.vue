@@ -1,6 +1,12 @@
 <template>
   <div class="Layout-Topbar _drag">
     <div class="service-time LCD">{{ serviceTime }}</div>
+    <div class="pin-button _no-drag" :class="{ 'active': isPinned }" @click="togglePinWindow" title="窗口置顶">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2L12 22"></path>
+        <path d="M18 8L12 2 6 8"></path>
+      </svg>
+    </div>
   </div>
 </template>
 
@@ -24,6 +30,28 @@ Service.registerApi(RequestName, {
 const serviceTime = ref(""); // 当前服务时间字符串
 let timer = null; // 定时器句柄
 let currentTimestamp = null; // 当前服务时间戳（毫秒）
+
+// ====== 窗口置顶功能 ======
+const isPinned = ref(false); // 窗口是否置顶
+
+/**
+ * 切换窗口置顶状态
+ * 通过Electron API与主进程通信，控制窗口的置顶状态
+ */
+const togglePinWindow = async () => {
+  try {
+    // 检查electronAPI是否可用
+    if (window.electronAPI) {
+      // 切换置顶状态
+      const newStatus = await window.electronAPI.toggleAlwaysOnTop(!isPinned.value);
+      isPinned.value = newStatus;
+    } else {
+      console.warn('electronAPI不可用，无法控制窗口置顶状态');
+    }
+  } catch (error) {
+    console.error('切换窗口置顶状态出错:', error);
+  }
+};
 
 // ====== 交易时间相关工具函数 ======
 /**
@@ -273,6 +301,16 @@ onMounted(async () => {
     // 获取交易日历
     await getTradeCalendar();
     
+    // 初始化窗口置顶状态
+    if (window.electronAPI) {
+      try {
+        // 获取当前窗口的置顶状态
+        isPinned.value = await window.electronAPI.getAlwaysOnTopStatus();
+      } catch (error) {
+        console.error('获取窗口置顶状态出错:', error);
+      }
+    }
+    
     // 使用传统定时器作为备份方案
     timer = setInterval(() => {
       // 当RAF暂停时（如窗口最小化状态），这个定时器会负责更新时间
@@ -360,6 +398,7 @@ defineExpose({
 .Layout-Topbar {
   display: flex;
   align-items: center;
+  justify-content: space-between; // 使服务时间和置顶按钮分别靠左和靠右
   box-sizing: border-box;
   padding: 0 10px;
 
@@ -369,6 +408,36 @@ defineExpose({
   .service-time {
     color: #fff;
     letter-spacing: 2px;
+  }
+  
+  .pin-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: #aaa;
+    transition: all 0.2s ease;
+    
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+    
+    &.active {
+      color: #4caf50; // 置顶状态激活时的颜色
+      
+      &:hover {
+        background-color: rgba(76, 175, 80, 0.1);
+      }
+    }
+    
+    svg {
+      width: 16px;
+      height: 16px;
+    }
   }
 }
 </style>

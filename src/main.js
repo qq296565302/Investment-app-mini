@@ -1,4 +1,4 @@
-import { app, BrowserWindow, screen } from 'electron';
+import { app, BrowserWindow, screen, ipcMain } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 
@@ -16,6 +16,9 @@ if (started) {
   app.quit();
 }
 
+// 存储主窗口的引用，以便在IPC通信中使用
+let mainWindow = null;
+
 const createWindow = () => {
   // 获取主显示器
   const primaryDisplay = screen.getPrimaryDisplay();
@@ -23,7 +26,7 @@ const createWindow = () => {
   
   // 根据环境设置不同的窗口配置
   const windowConfig = {
-    width: 1440,
+    width: 640,
     height: Math.round(height * 0.8), // 设置高度为显示器分辨率的80%
     frame: false,
     opacity: 1,
@@ -34,11 +37,12 @@ const createWindow = () => {
       devTools: isDevelopment,
       // 在开发环境下可以启用节点集成以方便调试
       nodeIntegration: isDevelopment,
-      contextIsolation: !isDevelopment,
+      contextIsolation: true, // 确保上下文隔离始终启用，以便preload脚本正常工作
     },
   };
   
-  const mainWindow = new BrowserWindow(windowConfig);
+  // 创建窗口并保存引用
+  mainWindow = new BrowserWindow(windowConfig);
 
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
@@ -50,6 +54,8 @@ const createWindow = () => {
   if (isDevelopment) {
     mainWindow.webContents.openDevTools();
   }
+  
+  return mainWindow;
 };
 
 // 添加错误处理
@@ -66,7 +72,25 @@ app.whenReady().then(() => {
   const startTime = new Date();
   console.log(`[INFO] App start time: ${startTime.toLocaleString()}`);
   
+  // 创建窗口
   createWindow();
+  
+  // 设置IPC通信处理程序，用于控制窗口置顶状态
+  ipcMain.handle('toggle-always-on-top', (event, shouldBeOnTop) => {
+    if (mainWindow) {
+      mainWindow.setAlwaysOnTop(shouldBeOnTop);
+      return mainWindow.isAlwaysOnTop();
+    }
+    return false;
+  });
+  
+  // 获取窗口当前置顶状态
+  ipcMain.handle('get-always-on-top-status', () => {
+    if (mainWindow) {
+      return mainWindow.isAlwaysOnTop();
+    }
+    return false;
+  });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
