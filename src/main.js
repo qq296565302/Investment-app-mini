@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, screen } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 
@@ -17,10 +17,14 @@ if (started) {
 }
 
 const createWindow = () => {
+  // 获取主显示器
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width, height } = primaryDisplay.workAreaSize;
+  
   // 根据环境设置不同的窗口配置
   const windowConfig = {
     width: 1440,
-    height: 900,
+    height: Math.round(height * 0.8), // 设置高度为显示器分辨率的80%
     frame: false,
     opacity: 1,
     resizable: isDevelopment, // 开发环境下允许调整窗口大小
