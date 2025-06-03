@@ -1,0 +1,37 @@
+:root {
+  --main-c-dark: rgb(28, 34, 56);
+  --text-c-dark: rgb(238, 238, 238);
+
+  --main-c-light: rgb(238, 238, 238);
+  --text-c-light: rgb(28, 34, 56);
+
+  /* 主色调：科技蓝 */
+  --primary-color: rgb(51, 120, 253);
+  /* 强调色：数据流绿 */ 
+  --accent-color: #00C853;
+  /* 辅助色：预警红 */
+  --warning-color: #FF3B30;
+  /* 中性灰 */
+  --neutral-color: #8E8E93;
+}
+
+:root{
+  --client-topbar-height: 40px;
+  --layout-header-height: 70px;
+}
+
+/**
+ * Dark mode 深色模式
+ */
+body.dark-mode {
+  --color-background: var(--main-c-dark);
+  --color-text: var(--text-c-dark);
+}
+
+/**
+ * Light mode 浅色模式
+ */
+body.light-mode {
+  --color-background: var(--main-c-light);
+  --color-text: var(--text-c-light);
+}

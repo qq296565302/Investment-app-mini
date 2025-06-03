@@ -1,0 +1,83 @@
+import { app, BrowserWindow } from 'electron';
+import path from 'node:path';
+import started from 'electron-squirrel-startup';
+
+// 判断当前环境是开发环境还是生产环境
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
+// 在开发环境中输出日志
+if (isDevelopment) {
+  console.log('[INFO] App running in development mode');
+} else {
+  console.log('[INFO] App running in production mode');
+}
+
+if (started) {
+  app.quit();
+}
+
+const createWindow = () => {
+  // 根据环境设置不同的窗口配置
+  const windowConfig = {
+    width: 1440,
+    height: 900,
+    frame: false,
+    opacity: 1,
+    resizable: isDevelopment, // 开发环境下允许调整窗口大小
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      // 开发环境下可以启用更多调试功能
+      devTools: isDevelopment,
+      // 在开发环境下可以启用节点集成以方便调试
+      nodeIntegration: isDevelopment,
+      contextIsolation: !isDevelopment,
+    },
+  };
+  
+  const mainWindow = new BrowserWindow(windowConfig);
+
+  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
+  } else {
+    mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
+  }
+
+  // 在开发环境下自动打开开发者工具
+  if (isDevelopment) {
+    mainWindow.webContents.openDevTools();
+  }
+};
+
+// 添加错误处理
+process.on('uncaughtException', (error) => {
+  console.error('[ERROR] Uncaught exception:', error);
+  if (!isDevelopment) {
+    // 在生产环境中可以添加错误报告机制
+    // 例如发送错误报告到服务器
+  }
+});
+
+app.whenReady().then(() => {
+  // 记录应用启动时间
+  const startTime = new Date();
+  console.log(`[INFO] App start time: ${startTime.toLocaleString()}`);
+  
+  createWindow();
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
+  });
+  
+  // 在开发环境下监听文件变化
+  if (isDevelopment) {
+    console.log('[INFO] Development mode: watching file changes');
+  }
+});
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});

@@ -1,0 +1,53 @@
+@import url("./variables.scss"); // 全局变量
+
+body,
+html,
+#app {
+  background-color: var(--color-background);
+  height: 100%;
+  padding: 0;
+  position: relative;
+  width: 100%;
+}
+
+* {
+  margin: 0;
+  user-select: none;
+}
+
+@font-face {
+  font-family: Collegiate;
+  src: url("../font/SF_Collegiate.ttf");
+}
+.Collegiate {
+  font-family: Collegiate;
+}
+@font-face {
+  font-family: PMZD;
+  src: url("../font/PMZD.ttf");
+}
+.PMZD {
+  font-family: PMZD;
+}
+@font-face {
+  font-family: PingFang;
+  src: url("../font/PINGFANG.OTF");
+}
+.PingFang {
+  font-family: PingFang;
+}
+@font-face {
+  font-family: LCD;
+  src: url("../font/LcdD.ttf");
+}
+.LCD {
+  font-family: LCD;
+}
+
+._drag {
+  -webkit-app-region: drag;
+}
+
+._no-drag {
+  -webkit-app-region: no-drag;
+}
