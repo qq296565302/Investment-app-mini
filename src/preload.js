@@ -9,5 +9,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   toggleAlwaysOnTop: (shouldBeOnTop) => ipcRenderer.invoke('toggle-always-on-top', shouldBeOnTop),
   
   // 获取窗口当前置顶状态
-  getAlwaysOnTopStatus: () => ipcRenderer.invoke('get-always-on-top-status')
+  getAlwaysOnTopStatus: () => ipcRenderer.invoke('get-always-on-top-status'),
+  
+  // 最小化窗口
+  minimizeWindow: () => ipcRenderer.invoke('minimize-window'),
+  
+  // 关闭窗口
+  closeWindow: () => ipcRenderer.invoke('close-window')
 });

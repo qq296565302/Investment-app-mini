@@ -91,6 +91,24 @@ app.whenReady().then(() => {
     }
     return false;
   });
+  
+  // 最小化窗口
+  ipcMain.handle('minimize-window', () => {
+    if (mainWindow) {
+      mainWindow.minimize();
+      return true;
+    }
+    return false;
+  });
+  
+  // 关闭窗口
+  ipcMain.handle('close-window', () => {
+    if (mainWindow) {
+      mainWindow.close();
+      return true;
+    }
+    return false;
+  });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
