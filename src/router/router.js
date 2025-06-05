@@ -18,9 +18,25 @@ const routes = [
           path: '/real-time-market',
           name: 'real-time-market',
           meta: {
-            title: '实时行情'
+            title: '财经新闻'
           },
           component: () => import('../views/RealTimeMarket/index.vue')
+        },
+        {
+          path: '/stock-market-activity',
+          name: 'stock_market_activity',
+          meta: {
+            title: '股市异动'
+          },
+          component: () => import('../views/MarketActivity/index.vue')
+        },
+        {
+          path: '/enterprise-dynamic',
+          name: 'enterprise_dynamic',
+          meta: {
+            title: '企业动态'
+          },
+          component: () => import('../views/Dynamic/index.vue')
         }
       ]
     }

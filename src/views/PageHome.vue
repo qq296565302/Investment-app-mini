@@ -2,7 +2,11 @@
     <div class="Page-Home">
         <Topbar />
         <Header />
-        <router-view class="layout-container" />
+        <router-view v-slot="{ Component }" class="layout-container">
+          <keep-alive include="RealTimeMarket">
+            <component :is="Component" />
+          </keep-alive>
+        </router-view>
     </div>
 </template>
 

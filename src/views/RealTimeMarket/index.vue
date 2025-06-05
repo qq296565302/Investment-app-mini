@@ -9,6 +9,11 @@
 </template>
 
 <script setup>
+import { defineOptions } from 'vue';
+
+defineOptions({
+  name: 'RealTimeMarket'
+});
 import News from "./News.vue"; // 财联社
 import Sina7x24 from "./Sina7x24.vue"; // 新浪7x24
 import RadioInputs from "../../components/RadioInputs.vue";

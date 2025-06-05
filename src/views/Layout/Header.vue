@@ -38,21 +38,16 @@ const updateActiveBgPosition = (index, useTransition = true) => {
 };
 
 const headers = [{
-    title: '行情',
+    title: '财经新闻',
     path: '/real-time-market'
 }, {
-    title: '期货',
-    path: '/futures'
+    title: '股市异动',
+    path: '/stock-market-activity'
 }, {
-    title: '美股',
-    path: '/us'
-}, {
-    title: '亚太市场',
-    path: '/ap'
-}, {
-    title: '欧洲市场',
-    path: '/eu'
+    title: '企业动态',
+    path: '/enterprise-dynamic'
 }];
+
 const handleHeaderClick = (index) => {
     // 更新当前选中索引
     currentIndex.value = index;
@@ -61,7 +56,7 @@ const handleHeaderClick = (index) => {
     updateActiveBgPosition(index);
     
     // 路由跳转
-    // router.push(headers[index].path);
+    router.push(headers[index].path);
 };
 onBeforeMount(() => { });
 onMounted(async() => {
