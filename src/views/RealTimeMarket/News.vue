@@ -24,15 +24,12 @@
           :use="svgIcon.BN_AI"
           class="icon-ai"
         /> -->
-        <div class="ai-loader">
-          <div
-            class="loader"
-            @click="deepSeekAnalysisHandler(item['内容'], item['发布时间'])"
-          >
-            <span></span>
-          </div>
-          <span v-if="item.isAnalysising">AI正在进行分析...</span>
-        </div>
+        <ai-analysis-loader
+          :content="item['内容']"
+          :publish-time="item['发布时间']"
+          :is-analysising="item.isAnalysising"
+          @analyse="deepSeekAnalysisHandler"
+        />
       </span>
     </div>
     <!-- 回到顶部 -->
@@ -43,6 +40,7 @@
 </template>
 
 <script setup>
+import AiAnalysisLoader from '@/components/AiAnalysisLoader.vue';
 import WebSocketService from "@zhaoshijun/ws-service";
 // 获取单例实例
 const ws = WebSocketService.getInstance();
@@ -209,7 +207,6 @@ const copyText = async (text) => {
  * DeepSeek 进行分析
  */
 import OpenAI from "openai";
-// 删除全局分析状态，改为每个item单独控制
 const currentAnlysisResult = ref(""); // 本次分析结果
 const openai = new OpenAI({
   baseURL: "https://api.deepseek.com",
