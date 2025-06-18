@@ -8,7 +8,6 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits, computed } from 'vue';
 
 const props = defineProps({
   // 选项数组，包含 value 和 label

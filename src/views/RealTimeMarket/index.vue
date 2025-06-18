@@ -9,7 +9,6 @@
 </template>
 
 <script setup>
-import { defineOptions } from 'vue';
 
 defineOptions({
   name: 'RealTimeMarket'
@@ -53,61 +52,7 @@ const RequestCollection = {
   },
 };
 
-/**
- * WebSocket
- */
-const ws = WebSocketService.getInstance();
-const tradeStore = useTradeStore(); // 获取交易状态 store
-const alertMessage = ref("");
-const alertType = ref("error");
-watch(
-  () => tradeStore.tradeStatus,
-  () => {
-    const statusName = tradeStore.tradeStatusName;
-    let alertText = "";
-    if (tradeStore.tradeStatus === "3") {
-      alertType.value = "info";
-      alertText = `A股 ${statusName}`;
-    }
-    if (tradeStore.tradeStatus === "2") {
-      alertType.value = "error";
-      alertText = `A股 ${statusName}，最后交易时间：${tradeStore.lastTradeTime}`;
-    }
-    if (tradeStore.tradeStatus === "1") {
-      alertType.value = "success";
-      alertText = `A股 ${statusName}`;
-    }
-    if (tradeStore.tradeStatus === "0") {
-      alertType.value = "error";
-      alertText = `A股 ${statusName}`;
-    }
-    alertMessage.value = alertText;
 
-    // 获取 WebSocket 服务并发送状态变化消息
-    try {
-      if (ws.getState() === 1) {
-        // 1 表示 WebSocket.OPEN
-        const statusMessage = JSON.stringify({
-          type: "tradeStatusChange",
-          data: {
-            status: tradeStore.tradeStatus,
-            statusName: statusName,
-            timestamp: Date.now(),
-            lastTradeTime: tradeStore.lastTradeTime || null,
-          },
-        });
-
-        // 发送消息到服务端
-        ws.send(statusMessage);
-        console.log("已发送交易状态变化消息到服务端");
-      } else {
-        console.warn("WebSocket 连接未打开，无法发送交易状态变化消息");
-      }
-    } catch (error) {
-      console.error("发送交易状态变化消息失败:", error);
-    }
-  }
-);
 
 // 新闻类型
 const newsType = ref("telegraph");

@@ -11,7 +11,6 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits } from 'vue';
 
 const props = defineProps({
   content: {
@@ -19,7 +18,7 @@ const props = defineProps({
     required: true,
   },
   publishTime: {
-    type: String,
+    type: [Number, String],
     required: true,
   },
   isAnalysising: {

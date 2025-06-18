@@ -16,6 +16,9 @@ if (started) {
   app.quit();
 }
 
+// 禁用安全警告
+process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
+
 // 存储主窗口的引用，以便在IPC通信中使用
 let mainWindow = null;
 

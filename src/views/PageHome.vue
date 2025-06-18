@@ -3,9 +3,9 @@
         <Topbar />
         <Header />
         <router-view v-slot="{ Component }" class="layout-container">
-          <keep-alive include="RealTimeMarket">
-            <component :is="Component" />
-          </keep-alive>
+            <keep-alive include="RealTimeMarket">
+                <component :is="Component" />
+            </keep-alive>
         </router-view>
     </div>
 </template>
@@ -25,6 +25,9 @@ const ws = WebSocketService.getInstance();
 ws.connect(import.meta.env.VITE_WS_URL)
     .then(() => {
         console.log(' WebSocketService 连接成功');
+        ws.sendTypedMessage('getStatus', {
+            type: 'tradeStatus'
+        });
     })
     .catch(error => {
         console.error(' WebSocketService 连接失败:', error);

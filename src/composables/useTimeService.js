@@ -1,5 +1,5 @@
 /**
- * 时间服务模块 - 提供时间同步、交易时间判断等功能
+ * 时间服务模块 - 提供时间同步和时间显示功能
  * 从Topbar.vue组件中抽取的时间相关功能
  */
 import { ref, onMounted, onBeforeUnmount } from 'vue';
@@ -10,103 +10,25 @@ import dayjs from 'dayjs';
  * @param {Object} options - 配置选项
  * @param {Object} options.service - API服务对象
  * @param {Object} options.crud - CRUD操作对象
- * @param {Object} options.tradeStore - 交易状态存储对象
  * @param {string} options.requestName - API请求名称标识
  * @returns {Object} 时间服务相关的状态和方法
  */
-export default function useTimeService({ service, crud, tradeStore, requestName }) {
+export default function useTimeService({ service, crud, requestName }) {
   // ====== 基础变量 ======
   const serviceTime = ref(""); // 当前服务时间字符串
-  const tradeCalendar = ref([]); // 交易日历数组
-  const tradeStatus = ref(""); // 当前交易状态名称
   
   let timer = null; // 定时器句柄
   let currentTimestamp = null; // 当前服务时间戳（毫秒）
-  let lastTradeOpenTime = null; // 最近一次交易状态为1的时间（可扩展用）
   
   // 使用RAF和定时器结合的方式，确保更稳定的时间更新
   let lastTime = 0;
   let rafId = null;
   let isRunning = false;
 
-  // ====== 交易时间相关工具函数 ======
+  // ====== 主业务逻辑：更新时间显示 ======
   /**
-   * 获取距离当前日期最近且不晚于当前日期的交易日
-   * @param {number} currentTimestamp - 当前时间戳（毫秒）
-   * @param {Ref<string[]>} tradeCalendar - 交易日历数组的引用
-   * @returns {string|null} 最近交易日的日期字符串，格式为'YYYY-MM-DD'，如果没有找到则返回null
-   */
-  function getNearestTradeDate(currentTimestamp, tradeCalendar) {
-    const currentDateStr = dayjs(currentTimestamp).format("YYYY-MM-DD");
-    // 筛选出不晚于当前日期的所有交易日
-    const pastTradeDates = tradeCalendar.value.filter((date) =>
-      dayjs(date).isSameOrBefore(currentDateStr)
-    );
-
-    if (pastTradeDates.length > 0) {
-      // 按日期降序排序并取第一个（最接近当前日期的交易日）
-      return pastTradeDates.sort((a, b) => dayjs(b).diff(dayjs(a)))[0];
-    }
-    return null;
-  }
-
-  /**
-   * 判断当前时间是否在交易时段内
-   * A股交易时段：上午9:30-11:30，下午13:00-15:00
-   * @param {number} currentTimestamp - 当前时间戳（毫秒）
-   * @returns {boolean} 是否在交易时段内
-   */
-  function isInTradeTime(currentTimestamp) {
-    const currentTime = dayjs(currentTimestamp);
-
-    // 定义当日的交易时间段 - 使用clone()避免修改原始对象
-    const morningStart = dayjs(currentTimestamp).hour(9).minute(30).second(0);
-    const morningEnd = dayjs(currentTimestamp).hour(11).minute(30).second(0);
-    const afternoonStart = dayjs(currentTimestamp).hour(13).minute(0).second(0);
-    const afternoonEnd = dayjs(currentTimestamp).hour(15).minute(0).second(0);
-
-    // 判断是否在上午或下午的交易时段内
-    return (
-      (currentTime.isAfter(morningStart) && currentTime.isBefore(morningEnd)) ||
-      (currentTime.isAfter(afternoonStart) && currentTime.isBefore(afternoonEnd))
-    );
-  }
-
-  /**
-   * 获取最近一次交易时段的结束时间
-   * @param {number} currentTimestamp - 当前时间戳（毫秒）
-   * @returns {string|null} 最近一次交易结束时间，格式为'YYYY-MM-DD HH:mm:ss'，如果当前时间早于上午收盘时间则返回null
-   */
-  function getLastTradeTime(currentTimestamp) {
-    const currentDateStr = dayjs(currentTimestamp).format("YYYY-MM-DD");
-    const morningEnd = dayjs(`${currentDateStr} 11:30:00`); // 上午收盘时间
-    const afternoonEnd = dayjs(`${currentDateStr} 15:00:00`); // 下午收盘时间
-
-    // 判断当前时间与收盘时间的关系
-    if (dayjs(currentTimestamp).isAfter(afternoonEnd)) {
-      // 如果当前时间晚于下午收盘时间，返回下午收盘时间
-      return afternoonEnd.format("YYYY-MM-DD HH:mm:ss");
-    } else if (dayjs(currentTimestamp).isAfter(morningEnd)) {
-      // 如果当前时间晚于上午收盘时间但早于下午收盘时间，返回上午收盘时间
-      return morningEnd.format("YYYY-MM-DD HH:mm:ss");
-    }
-    return null; // 当前时间早于任何收盘时间
-  }
-
-  // ====== 主业务逻辑：更新时间和交易状态 ======
-  /**
-   * 更新服务时间和交易状态的主函数
-   * 每秒执行一次，更新系统时间并根据当前时间判断交易状态
-   *
-   * 交易状态逻辑：
-   * 1. 判断当前日期是否为交易日
-   *    - 不是交易日：状态设为'0'（今日休市），并更新最近交易日信息
-   *    - 是交易日：继续判断当前时间
-   *
-   * 2. 对于交易日，根据时间判断具体状态：
-   *    - 早于9:30：状态设为'3'（未到开盘时间）
-   *    - 在交易时段内(9:30-11:30或13:00-15:00)：状态设为'1'（正在交易中）
-   *    - 其他时间：状态设为'2'（当日已收盘），并记录最近一次交易结束时间
+   * 更新服务时间显示的主函数
+   * 每秒执行一次，更新系统时间显示
    */
   const updateServiceTime = () => {
     try {
@@ -116,75 +38,10 @@ export default function useTimeService({ service, crud, tradeStore, requestName 
       // 更新时间戳和显示时间（每秒+1000毫秒）
       currentTimestamp += 1000;
       serviceTime.value = dayjs(currentTimestamp).format("YYYY-MM-DD HH:mm:ss");
-
-      // 获取当前日期字符串，用于判断是否为交易日
-      const currentDateStr = dayjs(currentTimestamp).format("YYYY-MM-DD");
-      const currentTime = dayjs(currentTimestamp);
-
-      // 步骤1：判断是否为交易日
-      if (!tradeCalendar.value.includes(currentDateStr)) {
-        // 非交易日处理逻辑
-        const nearestTradeDate = getNearestTradeDate(
-          currentTimestamp,
-          tradeCalendar
-        );
-        if (nearestTradeDate) {
-          tradeStore.updateNearestTradeDate(nearestTradeDate);
-        }
-        tradeStore.updateTradeStatus("0"); // 设置为休市状态
-        return;
-      }
-
-      // 步骤2：交易日内的时间状态判断
-      // 定义当日的交易时间段 - 使用clone()避免修改原始对象
-      const morningStart = dayjs(currentTimestamp).hour(9).minute(30).second(0);
-      const morningEnd = dayjs(currentTimestamp).hour(11).minute(30).second(0);
-      const afternoonStart = dayjs(currentTimestamp).hour(13).minute(0).second(0);
-      const afternoonEnd = dayjs(currentTimestamp).hour(15).minute(0).second(0);
-
-      // 调整条件判断顺序 - 先判断中午休市时段
-      if (currentTime.isBefore(morningStart)) {
-        // 情况1：交易日但未到开盘时间
-        tradeStore.updateTradeStatus("3");
-      } else if (
-        currentTime.isAfter(morningEnd) &&
-        currentTime.isBefore(afternoonStart)
-      ) {
-        // 情况3：中午休市时段(11:30-13:00) - 将此条件提前
-        tradeStore.updateTradeStatus("2");
-        // 获取并更新最近一次交易结束时间
-        tradeStore.updateLastTradeTime(morningEnd.format("YYYY-MM-DD HH:mm:ss"));
-      } else if (
-        isInTradeTime(currentTimestamp) ||
-        currentTime.isSame(afternoonStart)
-      ) {
-        // 情况2：在交易时段内（包括13:00整点）
-        tradeStore.updateTradeStatus("1");
-      } else {
-        // 情况4：交易日但不在交易时段（已收盘）
-        tradeStore.updateTradeStatus("2");
-
-        // 获取并更新最近一次交易结束时间
-        const lastTradeTime = getLastTradeTime(currentTimestamp);
-        if (lastTradeTime) {
-          tradeStore.updateLastTradeTime(lastTradeTime);
-        }
-      }
     } catch (error) {
       console.error("更新服务时间出错:", error);
       // 确保即使出错也不会中断定时器
     }
-  };
-
-  // ====== 交易日历获取 ======
-  const getTradeCalendar = async () => {
-    const result = await crud.launch(() => {
-      return service.fetch(requestName, undefined, "tradeCalendar");
-    });
-    // 格式化为 'YYYY-MM-DD' 字符串数组
-    tradeCalendar.value = result.data.map((item) => {
-      return dayjs(item.trade_date).format("YYYY-MM-DD");
-    });
   };
 
   // ====== 服务器时间同步函数 ======
@@ -200,8 +57,6 @@ export default function useTimeService({ service, crud, tradeStore, requestName 
       // 更新时间戳
       currentTimestamp = dayjs(result.data).valueOf();
       serviceTime.value = dayjs(currentTimestamp).format("YYYY-MM-DD HH:mm:ss");
-      // 立即更新一次交易状态
-      updateServiceTime();
       return true;
     } catch (error) {
       console.error("同步服务器时间出错:", error);
@@ -256,9 +111,6 @@ export default function useTimeService({ service, crud, tradeStore, requestName 
       });
       currentTimestamp = dayjs(result.data).valueOf();
       serviceTime.value = dayjs(currentTimestamp).format("YYYY-MM-DD HH:mm:ss");
-
-      // 获取交易日历
-      await getTradeCalendar();
 
       // 使用传统定时器作为备份方案
       timer = setInterval(() => {
@@ -342,12 +194,7 @@ export default function useTimeService({ service, crud, tradeStore, requestName 
   // 返回公开的状态和方法
   return {
     serviceTime,
-    tradeCalendar,
-    tradeStatus,
     syncTimeFromServer,
-    isInTradeTime,
-    getLastTradeTime,
-    getNearestTradeDate,
     updateServiceTime
   };
 }
