@@ -1,7 +1,8 @@
 <template>
     <div class="Layout-Header">
         <div class="active-background" :style="activeBgStyle"></div>
-        <p class="PingFang" :class="{ active: currentIndex === index }" v-for="(header, index) in headers" :key="index" @click="handleHeaderClick(index)">{{ header.title }}</p>
+        <p class="PingFang" :class="{ active: currentIndex === index }" v-for="(header, index) in headers" :key="index"
+            @click="handleHeaderClick(index)">{{ header.title }}</p>
     </div>
 </template>
 
@@ -41,25 +42,28 @@ const headers = [{
     title: '财经新闻',
     path: '/real-time-market'
 }, {
-    title: '股市异动',
+    title: '市场异动',
     path: '/stock-market-activity'
 }, {
     title: '企业动态',
     path: '/enterprise-dynamic'
+}, {
+    title: '赚钱效应',
+    path: '/market-effect'
 }];
 
 const handleHeaderClick = (index) => {
     // 更新当前选中索引
     currentIndex.value = index;
-    
+
     // 更新背景位置（带动画）
     updateActiveBgPosition(index);
-    
+
     // 路由跳转
     router.push(headers[index].path);
 };
 onBeforeMount(() => { });
-onMounted(async() => {
+onMounted(async () => {
 });
 defineExpose({});
 </script>
@@ -71,7 +75,7 @@ defineExpose({});
     display: grid;
     grid-template-columns: repeat(5, 100px);
     position: relative;
-    
+
     .active-background {
         position: absolute;
         top: 0;
@@ -82,7 +86,7 @@ defineExpose({});
         z-index: 1;
         border-radius: 0;
     }
-    
+
     p {
         cursor: pointer;
         display: flex;
@@ -91,6 +95,7 @@ defineExpose({});
         font-size: 14px;
         color: #fff;
         letter-spacing: 2px;
+
         &.active {
             color: #fff;
             position: relative;

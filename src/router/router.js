@@ -37,6 +37,14 @@ const routes = [
             title: '企业动态'
           },
           component: () => import('../views/Dynamic/index.vue')
+        },
+        {
+          path: '/market-effect',
+          name: 'market_effect',
+          meta: {
+            title: '赚钱效应'
+          },
+          component: () => import('../views/MarketEffect/index.vue')
         }
       ]
     }

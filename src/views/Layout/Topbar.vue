@@ -143,6 +143,7 @@ const setTradeStatusClass = () => {
 }
 const unsubscribe = ws.subscribe("tradeStatus", (payload, message) => {
   tradeStatusConfig.value = message
+  tradeStore.updateTradeStatus(message.status);
 })
 
 onMounted(async () => {
@@ -219,7 +220,7 @@ defineExpose({
       content: '';
       position: absolute;
       left: 10px;
-      top: 50%;
+      top: 60%;
       transform: translateY(-50%);
       width: 8px;
       height: 8px;
