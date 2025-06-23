@@ -43,7 +43,6 @@ const { Service, Request, CRUD } = getCurrentInstance()?.proxy; // 获取全局A
 Service.registerApi(RequestName, {
   fetch: {
     serviceTime: () => Request.get(`/finance/time`), // 获取服务器时间
-    tradeCalendar: () => Request.get(`/finance/trade-calendar`), // 获取交易日历
   },
 });
 

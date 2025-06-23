@@ -38,11 +38,15 @@ const PAGE_NAME = "CompanyDynamics";
 Service.registerApi(PAGE_NAME, {
     fetch: {
         getCompanyDynamics: (date) => Request.get(`/finance/quotes/company-dynamics?date=${date}`), // 获取赚钱行情
+        getServiceTime: () => Request.get(`/finance/time`), // 获取服务时间
+        isTradeDayToday: () => Request.get(`/finance/is-trading-day`), // 获取是否交易日
     },
 });
 
 const RequestCollection = {
     getCompanyDynamics: (date) => Service.fetch(PAGE_NAME, date, "getCompanyDynamics"), // 获取赚钱行情
+    getServiceTime: () => Service.fetch(PAGE_NAME, undefined, "getServiceTime"), // 获取服务时间
+    isTradeDayToday: () => Service.fetch(PAGE_NAME, undefined, "isTradeDayToday"), // 获取是否交易日
 }
 const CompanyDynamicsData = ref([]);
 const CompanyDynamicsStatus = ref(false);
@@ -55,8 +59,8 @@ const getCompanyDynamics = async () => {
         if (!CompanyDynamicsStatus.value) {
             return;
         }
-        const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-        const res = await RequestCollection.getCompanyDynamics(date);
+        const { data: serviceTime } = await RequestCollection.getServiceTime();
+        const res = await RequestCollection.getCompanyDynamics(serviceTime.slice(0, 10).replace(/-/g, ''));
         CompanyDynamicsData.value = res.data || [];
     } catch (error) {
         console.error('获取企业动态数据失败:', error);
@@ -84,17 +88,16 @@ const getTagType = (eventType) => {
 }
 
 
-onMounted(() => {
-
-})
-watch(() => tradeStore.tradeStatus, (newValue, oldValue) => {
-    if (newValue === 0) {
-        CompanyDynamicsStatus.value = false
-    } else {
+onMounted(async () => {
+    const isTradeDayToday = await RequestCollection.isTradeDayToday();
+    if (isTradeDayToday.data !== 0) {
         CompanyDynamicsStatus.value = true;
         getCompanyDynamics();
+    } else {
+        CompanyDynamicsStatus.value = false;
     }
 })
+
 </script>
 <style scoped lang="scss">
 .dynamic-container {
