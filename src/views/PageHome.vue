@@ -1,12 +1,12 @@
 <template>
     <div class="Page-Home">
         <Topbar />
-        <Header />
         <router-view v-slot="{ Component }" class="layout-container">
             <keep-alive include="RealTimeMarket">
                 <component :is="Component" />
             </keep-alive>
         </router-view>
+        <Header />
     </div>
 </template>
 
