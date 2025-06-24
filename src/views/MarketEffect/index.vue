@@ -1,15 +1,15 @@
 <template>
-    <div>
-        <div class="effect-bar">
+    <div class="market-effect-container">
+        <!-- <div class="effect-bar">
             <div :style="renderStyle('rise')">
             </div>
             <div :style="renderStyle('flat')">
             </div>
             <div :style="renderStyle('fall')">
             </div>
-        </div>
+        </div> -->
         <!-- 图例区域 -->
-        <div class="legend-container">
+        <!-- <div class="legend-container">
             <div class="legend-item">
                 <div class="legend-color rise-color"></div>
                 <span class="legend-text">上涨: {{ MarketEffectData.rise }}</span>
@@ -22,12 +22,58 @@
                 <div class="legend-color flat-color"></div>
                 <span class="legend-text">平盘: {{ MarketEffectData.flat }}</span>
             </div>
-            <div class="legend-item">
-                <div class="legend-color suspended-color"></div>
-                <span class="legend-text">停牌: {{ MarketEffectData.suspended }}</span>
+        </div> -->
+        <!-- 指数行情卡片 -->
+        <div class="quotes-cards-container">
+            <div 
+                v-for="(quote, index) in CommonQuotesData" 
+                :key="quote.代码 || index"
+                class="quote-card"
+                :class="getQuoteCardClass(quote.涨跌幅)"
+            >
+                <div class="quote-header">
+                    <div class="quote-name">{{ quote.名称 }}</div>
+                    <div class="quote-code">{{ quote.代码 }}</div>
+                </div>
+                <div class="quote-price-section">
+                    <div class="quote-current-price LCD">{{ formatPrice(quote.最新价) }}</div>
+                    <div class="quote-change" :class="getChangeClass(quote.涨跌幅)">
+                        {{ formatChange(quote.涨跌幅) }}%
+                    </div>
+                </div>
+                <div class="quote-details">
+                    <div class="quote-detail-row">
+                        <div class="quote-detail-item">
+                            <span class="detail-label">今开</span>
+                            <span class="detail-value">{{ formatPrice(quote.今开) }}</span>
+                        </div>
+                        <div class="quote-detail-item">
+                            <span class="detail-label">昨收</span>
+                            <span class="detail-value">{{ formatPrice(quote.昨收) }}</span>
+                        </div>
+                        <div class="quote-detail-item">
+                            <span class="detail-label">最高</span>
+                            <span class="detail-value">{{ formatPrice(quote.最高) }}</span>
+                        </div>
+                    </div>
+                    <div class="quote-detail-row">
+                        <div class="quote-detail-item">
+                            <span class="detail-label">最低</span>
+                            <span class="detail-value">{{ formatPrice(quote.最低) }}</span>
+                        </div>
+                        <div class="quote-detail-item">
+                            <span class="detail-label">成交额</span>
+                            <span class="detail-value">{{ formatVolume(quote.成交额) }}</span>
+                        </div>
+                        <div class="quote-detail-item">
+                            <span class="detail-label">量比</span>
+                            <span class="detail-value">{{ formatRatio(quote.量比) }}</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="bottom-button">
+        <div class="bottom-button" @click="RequestCollection.getCommonQuotes">
             添加自选
         </div>
     </div>
@@ -43,12 +89,28 @@ const PAGE_NAME = "MarketEffect";
 Service.registerApi(PAGE_NAME, {
     fetch: {
         getMarketEffect: () => Request.get(`/finance/quotes/market-effect`), // 获取赚钱行情
+        getCommonQuotes: () => Request.get(`/finance/quotes/common`), // 获取公共行情
     },
 });
 
 const RequestCollection = {
-    getMarketEffect: () => Service.fetch(PAGE_NAME, undefined, "getMarketEffect"), // 获取赚钱行情
+    getMarketEffect: async () => {
+        const result = await CRUD.launch(() => {
+            return Service.fetch(PAGE_NAME, undefined, "getMarketEffect");
+        });
+        return result.data;
+    }, // 获取赚钱效应
+    getCommonQuotes: async () => {
+        const result = await CRUD.launch(() => {
+            return Service.fetch(PAGE_NAME, undefined, "getCommonQuotes");
+        });
+        return result.data;
+    }, // 获取公共行情
 }
+
+/**
+ * * 赚钱效应
+ */
 const MarketEffectData = ref({
     "rise": 0,
     "limitUp": 0,
@@ -63,17 +125,18 @@ const MarketEffectData = ref({
     "activity": "0%",
     "statisticsDate": "2025-06-20 00:00:00",
 })
+
 const getMarketEffect = async () => {
-    const res = await RequestCollection.getMarketEffect();
-    MarketEffectData.value = res.data;
-    MarketEffectData.value.total = res.data.rise + res.data.fall + res.data.flat + res.data.suspended;
+    const marketEffect = await RequestCollection.getMarketEffect();
+    MarketEffectData.value = marketEffect;
+    MarketEffectData.value.total = marketEffect.rise + marketEffect.fall + marketEffect.flat + marketEffect.suspended;
 }
 
 const renderStyle = (type) => {
     let color = ''
     switch (type) {
         case 'rise':
-            color = 'rgb(230, 91, 91)';
+            color = 'rgb(255, 0, 0)';
             break;
         case 'fall':
             color = 'rgb(134, 211, 83)';
@@ -81,7 +144,6 @@ const renderStyle = (type) => {
         case 'flat':
             color = '#0000ff';
             break;
-
     }
     const width = Math.floor((MarketEffectData.value[type] / MarketEffectData.value.total) * 100);
     return {
@@ -112,14 +174,103 @@ watch(() => tradeStore.tradeStatus, (newValue, oldValue) => {
     }
 })
 
-onMounted(() => {
-    getMarketEffect();
+/**
+ * * 指数行情
+ */
+const CommonQuotesData = ref([]);
+const getCommonQuotes = async () => {
+    const commonQuotes = await RequestCollection.getCommonQuotes();
+    CommonQuotesData.value = commonQuotes || [];
+}
+
+/**
+ * 格式化价格显示
+ * @param {number} price - 价格数值
+ * @returns {string} 格式化后的价格字符串
+ */
+const formatPrice = (price) => {
+    if (price === null || price === undefined) return '--';
+    return Number(price).toFixed(2);
+}
+
+/**
+ * 格式化涨跌幅显示
+ * @param {number} change - 涨跌幅数值
+ * @returns {string} 格式化后的涨跌幅字符串
+ */
+const formatChange = (change) => {
+    if (change === null || change === undefined) return '0.00';
+    const formatted = Number(change).toFixed(2);
+    return change > 0 ? `+${formatted}` : formatted;
+}
+
+/**
+ * 格式化成交额显示
+ * @param {number} volume - 成交额数值
+ * @returns {string} 格式化后的成交额字符串
+ */
+const formatVolume = (volume) => {
+    if (volume === null || volume === undefined) return '--';
+    const num = Number(volume);
+    if (num >= 1e12) {
+        return (num / 1e12).toFixed(2) + '万亿';
+    } else if (num >= 1e8) {
+        return (num / 1e8).toFixed(2) + '亿';
+    } else if (num >= 1e4) {
+        return (num / 1e4).toFixed(2) + '万';
+    }
+    return num.toFixed(2);
+}
+
+/**
+ * 格式化量比显示
+ * @param {number} ratio - 量比数值
+ * @returns {string} 格式化后的量比字符串
+ */
+const formatRatio = (ratio) => {
+    if (ratio === null || ratio === undefined) return '--';
+    return Number(ratio).toFixed(2);
+}
+
+/**
+ * 获取涨跌幅对应的样式类名
+ * @param {number} change - 涨跌幅数值
+ * @returns {string} 样式类名
+ */
+const getChangeClass = (change) => {
+    if (change > 0) return 'change-rise';
+    if (change < 0) return 'change-fall';
+    return 'change-flat';
+}
+
+/**
+ * 获取卡片对应的样式类名
+ * @param {number} change - 涨跌幅数值
+ * @returns {string} 卡片样式类名
+ */
+const getQuoteCardClass = (change) => {
+    if (change > 0) return 'card-rise';
+    if (change < 0) return 'card-fall';
+    return 'card-flat';
+}
+
+onMounted(async () => {
+    await getMarketEffect();
+    await getCommonQuotes();
 })
 
 onUnmounted(() => {
 })
 </script>
 <style scoped lang="scss">
+.market-effect-container {
+    box-sizing: border-box;
+    padding: 20px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
 .effect-bar {
     align-items: center;
     background-color: rgb(214, 214, 214);
@@ -128,9 +279,8 @@ onUnmounted(() => {
     display: flex;
     height: 10px;
     justify-content: space-between;
-    margin: 10px 20px;
     overflow: hidden;
-    width: calc(100% - 40px);
+    width: 100%;
 }
 
 /* 图例样式 */
@@ -154,12 +304,11 @@ onUnmounted(() => {
 .legend-color {
     width: 12px;
     height: 12px;
-    border-radius: 100%;
     flex-shrink: 0;
 }
 
 .rise-color {
-    background-color: rgb(230, 91, 91);
+    background-color: rgb(255, 0, 0);
 }
 
 .fall-color {
@@ -181,7 +330,7 @@ onUnmounted(() => {
 
 /* 毛玻璃按钮样式 */
 .bottom-button {
-    position: fixed;
+    position: absolute;
     bottom: 20px;
     display: flex;
     align-items: center;
@@ -195,13 +344,13 @@ onUnmounted(() => {
     cursor: pointer;
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.3);
-    
+
     /* 毛玻璃效果 */
     background: rgba(255, 255, 255, 0.2);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-    
+
     /* 过渡动画 */
     transition: all 0.3s ease;
 }
@@ -218,4 +367,157 @@ onUnmounted(() => {
     transform: translateY(0);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
+
+/* 指数行情卡片样式 */
+.quotes-cards-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    padding: 0 10px;
+    height: 100%;
+    overflow: auto;
+    flex: 1;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+.quote-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border-radius: 16px;
+    padding: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    height: 160px;
+    overflow: hidden;
+}
+
+.quote-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    // background: linear-gradient(90deg, #e0e0e0, #e0e0e0);
+    transition: background 0.3s ease;
+}
+
+// .quote-card.card-rise::before {
+//     background: linear-gradient(90deg, #ff4757, #ff6b7a);
+// }
+
+// .quote-card.card-fall::before {
+//     background: linear-gradient(90deg, #2ed573, #7bed9f);
+// }
+
+// .quote-card.card-flat::before {
+//     background: linear-gradient(90deg, #5352ed, #7f8ff4);
+// }
+
+.quote-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+.quote-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.quote-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: #2c3e50;
+    letter-spacing: 0.5px;
+}
+
+.quote-code {
+    font-size: 12px;
+    color: #7f8c8d;
+    background: #ecf0f1;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+}
+
+.quote-price-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 5px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #ecf0f1;
+}
+
+.quote-current-price {
+    font-size: 24px;
+    font-weight: 700;
+    color: #2c3e50;
+    letter-spacing: 2px;
+}
+
+.quote-change {
+    font-size: 14px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 8px;
+    letter-spacing: 0.3px;
+}
+
+.change-rise {
+    color: #ffffff;
+    background: linear-gradient(135deg, #ff4757, #ff6b7a);
+}
+
+.change-fall {
+    color: #ffffff;
+    background: linear-gradient(135deg, #2ed573, #7bed9f);
+}
+
+.change-flat {
+    color: #ffffff;
+    background: linear-gradient(135deg, #5352ed, #7f8ff4);
+}
+
+.quote-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.quote-detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.quote-detail-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    padding: 4px 0;
+    text-align: center;
+}
+
+.detail-label {
+    font-size: 12px;
+    color: #7f8c8d;
+    font-weight: 500;
+}
+
+.detail-value {
+    font-size: 13px;
+    color: #2c3e50;
+    font-weight: 600;
+    font-family: 'Courier New', monospace;
+}
+
 </style>
