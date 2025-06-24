@@ -284,29 +284,37 @@ onUnmounted(() => {
 }
 
 /* 图例样式 */
-.legend-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 20px;
-    margin: 15px 20px;
-    flex-wrap: wrap;
+.legend {
+    &-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 20px;
+        margin: 15px 20px;
+        flex-wrap: wrap;
+    }
+
+    &-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: #333;
+    }
+
+    &-color {
+        width: 12px;
+        height: 12px;
+        flex-shrink: 0;
+    }
+
+    &-text {
+        white-space: nowrap;
+        font-weight: 500;
+    }
 }
 
-.legend-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    color: #333;
-}
-
-.legend-color {
-    width: 12px;
-    height: 12px;
-    flex-shrink: 0;
-}
-
+// 图例颜色类
 .rise-color {
     background-color: rgb(255, 0, 0);
 }
@@ -321,11 +329,6 @@ onUnmounted(() => {
 
 .suspended-color {
     background-color: rgb(214, 214, 214);
-}
-
-.legend-text {
-    white-space: nowrap;
-    font-weight: 500;
 }
 
 /* 毛玻璃按钮样式 */
@@ -353,19 +356,19 @@ onUnmounted(() => {
 
     /* 过渡动画 */
     transition: all 0.3s ease;
-}
 
-.bottom-button:hover {
-    background: rgba(255, 255, 255, 0.3);
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-    transform: translateY(-2px);
-}
+    &:hover {
+        background: rgba(255, 255, 255, 0.3);
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
+    }
 
-.bottom-button:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    &:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
 }
 
 /* 指数行情卡片样式 */
@@ -383,141 +386,150 @@ onUnmounted(() => {
     }
 }
 
-.quote-card {
-    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-    border-radius: 16px;
-    padding: 10px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    height: 160px;
-    overflow: hidden;
+.quote {
+    &-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        border-radius: 16px;
+        padding: 10px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        height: 160px;
+        overflow: hidden;
+
+        &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            // background: linear-gradient(90deg, #e0e0e0, #e0e0e0);
+            transition: background 0.3s ease;
+        }
+
+        // &.card-rise::before {
+        //     background: linear-gradient(90deg, #ff4757, #ff6b7a);
+        // }
+
+        // &.card-fall::before {
+        //     background: linear-gradient(90deg, #2ed573, #7bed9f);
+        // }
+
+        // &.card-flat::before {
+        //     background: linear-gradient(90deg, #5352ed, #7f8ff4);
+        // }
+
+        &:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        }
+    }
+
+    &-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 5px;
+    }
+
+    &-name {
+        font-size: 16px;
+        font-weight: 600;
+        color: #2c3e50;
+        letter-spacing: 0.5px;
+    }
+
+    &-code {
+        font-size: 12px;
+        color: #7f8c8d;
+        background: #ecf0f1;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-family: 'Courier New', monospace;
+    }
+
+    &-price-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 5px;
+        padding-bottom: 5px;
+        border-bottom: 1px solid #ecf0f1;
+    }
+
+    &-current-price {
+        font-size: 24px;
+        font-weight: 700;
+        color: #2c3e50;
+        letter-spacing: 2px;
+    }
+
+    &-change {
+        font-size: 14px;
+        font-weight: 600;
+        padding: 4px 8px;
+        border-radius: 8px;
+        letter-spacing: 0.3px;
+    }
+
+    &-details {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    &-detail {
+        &-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        &-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            padding: 4px 0;
+            text-align: center;
+        }
+    }
 }
 
-.quote-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    // background: linear-gradient(90deg, #e0e0e0, #e0e0e0);
-    transition: background 0.3s ease;
+// 涨跌幅样式
+.change {
+    &-rise {
+        color: #ffffff;
+        background: linear-gradient(135deg, #ff4757, #ff6b7a);
+    }
+
+    &-fall {
+        color: #ffffff;
+        background: linear-gradient(135deg, #2ed573, #7bed9f);
+    }
+
+    &-flat {
+        color: #ffffff;
+        background: linear-gradient(135deg, #5352ed, #7f8ff4);
+    }
 }
 
-// .quote-card.card-rise::before {
-//     background: linear-gradient(90deg, #ff4757, #ff6b7a);
-// }
+// 详情标签和值
+.detail {
+    &-label {
+        font-size: 12px;
+        color: #7f8c8d;
+        font-weight: 500;
+    }
 
-// .quote-card.card-fall::before {
-//     background: linear-gradient(90deg, #2ed573, #7bed9f);
-// }
-
-// .quote-card.card-flat::before {
-//     background: linear-gradient(90deg, #5352ed, #7f8ff4);
-// }
-
-.quote-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    &-value {
+        font-size: 13px;
+        color: #2c3e50;
+        font-weight: 600;
+        font-family: 'Courier New', monospace;
+    }
 }
-
-.quote-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 5px;
-}
-
-.quote-name {
-    font-size: 16px;
-    font-weight: 600;
-    color: #2c3e50;
-    letter-spacing: 0.5px;
-}
-
-.quote-code {
-    font-size: 12px;
-    color: #7f8c8d;
-    background: #ecf0f1;
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-family: 'Courier New', monospace;
-}
-
-.quote-price-section {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 5px;
-    padding-bottom: 5px;
-    border-bottom: 1px solid #ecf0f1;
-}
-
-.quote-current-price {
-    font-size: 24px;
-    font-weight: 700;
-    color: #2c3e50;
-    letter-spacing: 2px;
-}
-
-.quote-change {
-    font-size: 14px;
-    font-weight: 600;
-    padding: 4px 8px;
-    border-radius: 8px;
-    letter-spacing: 0.3px;
-}
-
-.change-rise {
-    color: #ffffff;
-    background: linear-gradient(135deg, #ff4757, #ff6b7a);
-}
-
-.change-fall {
-    color: #ffffff;
-    background: linear-gradient(135deg, #2ed573, #7bed9f);
-}
-
-.change-flat {
-    color: #ffffff;
-    background: linear-gradient(135deg, #5352ed, #7f8ff4);
-}
-
-.quote-details {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.quote-detail-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 8px;
-}
-
-.quote-detail-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    flex: 1;
-    padding: 4px 0;
-    text-align: center;
-}
-
-.detail-label {
-    font-size: 12px;
-    color: #7f8c8d;
-    font-weight: 500;
-}
-
-.detail-value {
-    font-size: 13px;
-    color: #2c3e50;
-    font-weight: 600;
-    font-family: 'Courier New', monospace;
-}
-
 </style>
