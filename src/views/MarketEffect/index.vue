@@ -26,7 +26,7 @@
         <!-- 指数行情卡片 -->
         <div class="quotes-cards-container">
             <div 
-                v-for="(quote, index) in CommonQuotesData" 
+                v-for="(quote, index) in filteredQuotesData" 
                 :key="quote.代码 || index"
                 class="quote-card"
                 :class="getQuoteCardClass(quote.涨跌幅)"
@@ -73,14 +73,44 @@
                 </div>
             </div>
         </div>
-        <div class="bottom-button" @click="RequestCollection.getCommonQuotes">
+        <div class="bottom-button" @click="openSelectionDialog">
             添加自选
         </div>
+        
+        <!-- 自选股票弹窗 -->
+        <el-dialog 
+            v-model="dialogVisible" 
+            title="选择自选股票" 
+            width="80%"
+            :before-close="handleClose"
+        >
+            <div class="selection-container">
+                <div class="tags-container">
+                    <el-tag
+                        v-for="stock in allStocks"
+                        :key="stock.代码"
+                        :type="selectedStocks.includes(stock.代码) ? 'primary' : 'info'"
+                        :effect="selectedStocks.includes(stock.代码) ? 'dark' : 'plain'"
+                        class="stock-tag"
+                        @click="toggleStock(stock.代码)"
+                    >
+                        {{ stock.名称 }} ({{ stock.代码 }})
+                    </el-tag>
+                </div>
+            </div>
+            <template #footer>
+                <span class="dialog-footer">
+                    <el-button @click="dialogVisible = false">取消</el-button>
+                    <el-button type="primary" @click="saveSelection">保存</el-button>
+                </span>
+            </template>
+        </el-dialog>
     </div>
 </template>
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { ref, onMounted, onUnmounted, watch, computed, getCurrentInstance } from 'vue';
 import { useTradeStore } from '@/stores/trade';
+import { ElDialog, ElTag, ElButton, ElMessage } from 'element-plus';
 const tradeStore = useTradeStore();
 const { Service, Request, CRUD, Storage, $message } =
     getCurrentInstance()?.proxy;
@@ -181,7 +211,112 @@ const CommonQuotesData = ref([]);
 const getCommonQuotes = async () => {
     const commonQuotes = await RequestCollection.getCommonQuotes();
     CommonQuotesData.value = commonQuotes || [];
+    // 保存所有股票信息到localStorage
+    saveAllStocksToStorage();
 }
+
+/**
+ * * 自选股票功能
+ */
+// 弹窗显示状态
+const dialogVisible = ref(false);
+// 所有股票数据
+const allStocks = ref([]);
+// 当前选中的股票代码列表
+const selectedStocks = ref([]);
+// localStorage键名
+const STORAGE_KEY = 'selectedStocks';
+const ALL_STOCKS_KEY = 'allStocks';
+
+/**
+ * 保存所有股票信息到localStorage
+ */
+const saveAllStocksToStorage = () => {
+    if (CommonQuotesData.value && CommonQuotesData.value.length > 0) {
+        const stocksInfo = CommonQuotesData.value.map(quote => ({
+            名称: quote.名称,
+            代码: quote.代码
+        }));
+        localStorage.setItem(ALL_STOCKS_KEY, JSON.stringify(stocksInfo));
+        allStocks.value = stocksInfo;
+    }
+}
+
+/**
+ * 从localStorage加载所有股票信息
+ */
+const loadAllStocksFromStorage = () => {
+    const stored = localStorage.getItem(ALL_STOCKS_KEY);
+    if (stored) {
+        allStocks.value = JSON.parse(stored);
+    }
+}
+
+/**
+ * 从localStorage加载已选中的股票
+ */
+const loadSelectedStocks = () => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+        selectedStocks.value = JSON.parse(stored);
+    }
+}
+
+/**
+ * 保存选中的股票到localStorage
+ */
+const saveSelectedStocks = () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(selectedStocks.value));
+}
+
+/**
+ * 打开选择弹窗
+ */
+const openSelectionDialog = () => {
+    loadAllStocksFromStorage();
+    dialogVisible.value = true;
+}
+
+/**
+ * 切换股票选中状态
+ * @param {string} stockCode - 股票代码
+ */
+const toggleStock = (stockCode) => {
+    const index = selectedStocks.value.indexOf(stockCode);
+    if (index > -1) {
+        selectedStocks.value.splice(index, 1);
+    } else {
+        selectedStocks.value.push(stockCode);
+    }
+}
+
+/**
+ * 保存选择并关闭弹窗
+ */
+const saveSelection = () => {
+    saveSelectedStocks();
+    dialogVisible.value = false;
+    ElMessage.success('自选股票保存成功');
+}
+
+/**
+ * 关闭弹窗前的处理
+ */
+const handleClose = (done) => {
+    done();
+}
+
+/**
+ * 过滤后的股票数据（只显示选中的股票）
+ */
+const filteredQuotesData = computed(() => {
+    if (selectedStocks.value.length === 0) {
+        return CommonQuotesData.value;
+    }
+    return CommonQuotesData.value.filter(quote => 
+        selectedStocks.value.includes(quote.代码)
+    );
+})
 
 /**
  * 格式化价格显示
@@ -257,6 +392,8 @@ const getQuoteCardClass = (change) => {
 onMounted(async () => {
     await getMarketEffect();
     await getCommonQuotes();
+    // 加载已选中的股票
+    loadSelectedStocks();
 })
 
 onUnmounted(() => {
@@ -530,6 +667,56 @@ onUnmounted(() => {
         color: #2c3e50;
         font-weight: 600;
         font-family: 'Courier New', monospace;
+    }
+}
+
+/* 自选股票弹窗样式 */
+.selection-container {
+    max-height: 400px;
+    overflow-y: auto;
+    
+    .tags-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 10px 0;
+        
+        .stock-tag {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            
+            &:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            }
+        }
+    }
+}
+
+.dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+/* 自定义滚动条样式 */
+.selection-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.selection-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.selection-container::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+    
+    &:hover {
+        background: rgba(0, 0, 0, 0.3);
     }
 }
 </style>
