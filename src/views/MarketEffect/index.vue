@@ -517,6 +517,8 @@ onUnmounted(() => {
     height: 100%;
     overflow: auto;
     flex: 1;
+    align-content: start;
+    grid-auto-rows: 180px;
 
     &::-webkit-scrollbar {
         display: none;
