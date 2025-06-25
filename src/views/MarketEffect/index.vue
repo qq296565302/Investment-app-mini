@@ -26,17 +26,22 @@
         <!-- 指数行情卡片 -->
         <div class="quotes-cards-container">
             <div 
-                v-for="(quote, index) in filteredQuotesData" 
+                v-for="(quote, index) in sortedQuotesData" 
                 :key="quote.代码 || index"
                 class="quote-card"
                 :class="getQuoteCardClass(quote.涨跌幅)"
+                draggable="true"
+                @dragstart="handleDragStart($event, index)"
+                @dragover="handleDragOver($event)"
+                @drop="handleDrop($event, index)"
+                @dragend="handleDragEnd"
             >
                 <div class="quote-header">
                     <div class="quote-name">{{ quote.名称 }}</div>
                     <div class="quote-code">{{ quote.代码 }}</div>
                 </div>
                 <div class="quote-price-section">
-                    <div class="quote-current-price LCD">{{ formatPrice(quote.最新价) }}</div>
+                    <div class="quote-current-price LCD" :class="getPriceChangeClass(quote.涨跌幅)">{{ formatPrice(quote.最新价) }}</div>
                     <div class="quote-change" :class="getChangeClass(quote.涨跌幅)">
                         {{ formatChange(quote.涨跌幅) }}%
                     </div>
@@ -227,6 +232,13 @@ const selectedStocks = ref([]);
 // localStorage键名
 const STORAGE_KEY = 'selectedStocks';
 const ALL_STOCKS_KEY = 'allStocks';
+const CARD_ORDER_KEY = 'cardOrder';
+
+/**
+ * 拖拽相关状态
+ */
+const draggedIndex = ref(null);
+const cardOrder = ref([]);
 
 /**
  * 保存所有股票信息到localStorage
@@ -295,6 +307,9 @@ const toggleStock = (stockCode) => {
  */
 const saveSelection = () => {
     saveSelectedStocks();
+    // 更新卡片顺序，移除不再选中的股票
+    cardOrder.value = cardOrder.value.filter(code => selectedStocks.value.includes(code));
+    saveCardOrder();
     dialogVisible.value = false;
     ElMessage.success('自选股票保存成功');
 }
@@ -307,6 +322,76 @@ const handleClose = (done) => {
 }
 
 /**
+ * 拖拽开始事件处理
+ * @param {DragEvent} event - 拖拽事件
+ * @param {number} index - 被拖拽项的索引
+ */
+const handleDragStart = (event, index) => {
+    draggedIndex.value = index;
+    event.dataTransfer.effectAllowed = 'move';
+    event.target.style.opacity = '0.5';
+}
+
+/**
+ * 拖拽悬停事件处理
+ * @param {DragEvent} event - 拖拽事件
+ */
+const handleDragOver = (event) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+}
+
+/**
+ * 拖拽放置事件处理
+ * @param {DragEvent} event - 拖拽事件
+ * @param {number} targetIndex - 目标位置索引
+ */
+const handleDrop = (event, targetIndex) => {
+    event.preventDefault();
+    
+    if (draggedIndex.value === null || draggedIndex.value === targetIndex) {
+        return;
+    }
+    
+    // 重新排列数据
+    const newOrder = [...sortedQuotesData.value];
+    const draggedItem = newOrder.splice(draggedIndex.value, 1)[0];
+    newOrder.splice(targetIndex, 0, draggedItem);
+    
+    // 更新卡片顺序
+    cardOrder.value = newOrder.map(quote => quote.代码);
+    
+    // 保存到localStorage
+    saveCardOrder();
+}
+
+/**
+ * 拖拽结束事件处理
+ * @param {DragEvent} event - 拖拽事件
+ */
+const handleDragEnd = (event) => {
+    event.target.style.opacity = '1';
+    draggedIndex.value = null;
+}
+
+/**
+ * 保存卡片顺序到localStorage
+ */
+const saveCardOrder = () => {
+    localStorage.setItem(CARD_ORDER_KEY, JSON.stringify(cardOrder.value));
+}
+
+/**
+ * 从localStorage加载卡片顺序
+ */
+const loadCardOrder = () => {
+    const stored = localStorage.getItem(CARD_ORDER_KEY);
+    if (stored) {
+        cardOrder.value = JSON.parse(stored);
+    }
+}
+
+/**
  * 过滤后的股票数据（只显示选中的股票）
  */
 const filteredQuotesData = computed(() => {
@@ -316,6 +401,33 @@ const filteredQuotesData = computed(() => {
     return CommonQuotesData.value.filter(quote => 
         selectedStocks.value.includes(quote.代码)
     );
+})
+
+/**
+ * 根据保存的顺序排序的股票数据
+ */
+const sortedQuotesData = computed(() => {
+    const filtered = filteredQuotesData.value;
+    if (cardOrder.value.length === 0 || filtered.length === 0) {
+        return filtered;
+    }
+    
+    // 根据保存的顺序重新排列
+    const ordered = [];
+    const remaining = [...filtered];
+    
+    // 先按照保存的顺序添加
+    cardOrder.value.forEach(code => {
+        const index = remaining.findIndex(quote => quote.代码 === code);
+        if (index !== -1) {
+            ordered.push(remaining.splice(index, 1)[0]);
+        }
+    });
+    
+    // 添加新的未排序的项目
+    ordered.push(...remaining);
+    
+    return ordered;
 })
 
 /**
@@ -377,7 +489,11 @@ const getChangeClass = (change) => {
     if (change < 0) return 'change-fall';
     return 'change-flat';
 }
-
+const getPriceChangeClass = (change) => {
+    if (change > 0) return 'price-rise';
+    if (change < 0) return 'price-fall';
+    return 'price-flat';
+}
 /**
  * 获取卡片对应的样式类名
  * @param {number} change - 涨跌幅数值
@@ -394,6 +510,8 @@ onMounted(async () => {
     await getCommonQuotes();
     // 加载已选中的股票
     loadSelectedStocks();
+    // 加载卡片顺序
+    loadCardOrder();
 })
 
 onUnmounted(() => {
@@ -536,6 +654,7 @@ onUnmounted(() => {
         position: relative;
         height: 160px;
         overflow: hidden;
+        cursor: grab;
 
         &::before {
             content: '';
@@ -563,6 +682,27 @@ onUnmounted(() => {
         &:hover {
             transform: translateY(-4px);
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        }
+
+        &:active {
+            cursor: grabbing;
+        }
+
+        &[draggable="true"]:hover {
+            border-color: #409eff;
+            box-shadow: 0 8px 15px rgba(64, 158, 255, 0.3);
+        }
+
+        // 拖拽状态样式
+        &.dragging {
+            opacity: 0.5;
+            transform: rotate(5deg);
+        }
+
+        // 拖拽目标样式
+        &.drag-over {
+            border-color: #67c23a;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
         }
     }
 
@@ -637,7 +777,17 @@ onUnmounted(() => {
         }
     }
 }
-
+.price{
+    &-rise {
+        color: #ff4757;
+    }
+    &-fall {
+        color: #2ed573;
+    }
+    &-flat {
+        color: #5352ed;
+    }
+}
 // 涨跌幅样式
 .change {
     &-rise {
