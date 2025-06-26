@@ -1,6 +1,11 @@
 <template>
-  <div class="radio-inputs">
-    <label v-for="(option, index) in options" :key="index" class="radio">
+  <div class="radio-inputs" :style="containerStyle">
+    <label 
+      v-for="(option, index) in options" 
+      :key="index" 
+      class="radio"
+      :style="itemStyle"
+    >
       <input type="radio" :name="name" :checked="modelValue === option.value" :value="option.value" @change="onChange(option.value)"/>
       <span class="name">{{ option.label }}</span>
     </label>
@@ -8,6 +13,7 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
 
 const props = defineProps({
   // 选项数组，包含 value 和 label
@@ -25,16 +31,51 @@ const props = defineProps({
   name: {
     type: String,
     default: 'radio-group'
+  },
+  // 每行显示的按钮数量，0表示不换行
+  itemsPerRow: {
+    type: Number,
+    default: 0,
+    validator: (value) => value >= 0
   }
 });
 
 const emit = defineEmits(['update:modelValue', 'change']);
 
-// 处理选项变更
+/**
+ * 处理选项变更
+ * @param {string|number} value - 选中的值
+ */
 const onChange = (value) => {
   emit('update:modelValue', value);
   emit('change', value);
 };
+
+/**
+ * 计算容器样式
+ */
+const containerStyle = computed(() => {
+  if (props.itemsPerRow > 0) {
+    return {
+      display: 'grid',
+      gridTemplateColumns: `repeat(${props.itemsPerRow}, 1fr)`,
+      gap: '8px'
+    };
+  }
+  return {};
+});
+
+/**
+ * 计算每个选项的样式
+ */
+const itemStyle = computed(() => {
+  if (props.itemsPerRow > 0) {
+    return {
+      flex: 'none'
+    };
+  }
+  return {};
+});
 </script>
 
 <style>

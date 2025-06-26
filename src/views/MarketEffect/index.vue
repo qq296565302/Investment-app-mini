@@ -25,23 +25,16 @@
         </div> -->
         <!-- 指数行情卡片 -->
         <div class="quotes-cards-container">
-            <div 
-                v-for="(quote, index) in sortedQuotesData" 
-                :key="quote.代码 || index"
-                class="quote-card"
-                :class="getQuoteCardClass(quote.涨跌幅)"
-                draggable="true"
-                @dragstart="handleDragStart($event, index)"
-                @dragover="handleDragOver($event)"
-                @drop="handleDrop($event, index)"
-                @dragend="handleDragEnd"
-            >
+            <div v-for="(quote, index) in sortedQuotesData" :key="quote.代码 || index" class="quote-card"
+                :class="getQuoteCardClass(quote.涨跌幅)" draggable="true" @dragstart="handleDragStart($event, index)"
+                @dragover="handleDragOver($event)" @drop="handleDrop($event, index)" @dragend="handleDragEnd">
                 <div class="quote-header">
                     <div class="quote-name">{{ quote.名称 }}</div>
                     <div class="quote-code">{{ quote.代码 }}</div>
                 </div>
                 <div class="quote-price-section">
-                    <div class="quote-current-price LCD" :class="getPriceChangeClass(quote.涨跌幅)">{{ formatPrice(quote.最新价) }}</div>
+                    <div class="quote-current-price LCD" :class="getPriceChangeClass(quote.涨跌幅)">{{
+                        formatPrice(quote.最新价) }}</div>
                     <div class="quote-change" :class="getChangeClass(quote.涨跌幅)">
                         {{ formatChange(quote.涨跌幅) }}%
                     </div>
@@ -81,24 +74,15 @@
         <div class="bottom-button" @click="openSelectionDialog">
             添加自选
         </div>
-        
+
         <!-- 自选股票弹窗 -->
-        <el-dialog 
-            v-model="dialogVisible" 
-            title="选择自选股票" 
-            width="80%"
-            :before-close="handleClose"
-        >
+        <el-dialog v-model="dialogVisible" title="选择自选股票" width="80%" :before-close="handleClose">
             <div class="selection-container">
                 <div class="tags-container">
-                    <el-tag
-                        v-for="stock in allStocks"
-                        :key="stock.代码"
+                    <el-tag v-for="stock in allStocks" :key="stock.代码"
                         :type="selectedStocks.includes(stock.代码) ? 'primary' : 'info'"
-                        :effect="selectedStocks.includes(stock.代码) ? 'dark' : 'plain'"
-                        class="stock-tag"
-                        @click="toggleStock(stock.代码)"
-                    >
+                        :effect="selectedStocks.includes(stock.代码) ? 'dark' : 'plain'" class="stock-tag"
+                        @click="toggleStock(stock.代码)">
                         {{ stock.名称 }} ({{ stock.代码 }})
                     </el-tag>
                 </div>
@@ -188,27 +172,6 @@ const renderStyle = (type) => {
     }
 }
 
-const timer = ref(null);
-const setTimer = () => {
-    clearTimer();
-    timer.value = setInterval(() => {
-        getMarketEffect();
-    }, 1000 * 60 * 3);
-}
-const clearTimer = () => {
-    if (timer.value) {
-        clearInterval(timer.value);
-    }
-}
-
-watch(() => tradeStore.tradeStatus, (newValue, oldValue) => {
-    if (newValue === 1) {
-        setTimer();
-    } else {
-        clearTimer();
-    }
-})
-
 /**
  * * 指数行情
  */
@@ -219,6 +182,26 @@ const getCommonQuotes = async () => {
     // 保存所有股票信息到localStorage
     saveAllStocksToStorage();
 }
+
+const timer = ref(null);
+const setTimer = () => {
+    clearTimer();
+    timer.value = setInterval(() => {
+        getCommonQuotes();
+    }, 1000 * 60 * 0.5);
+}
+const clearTimer = () => {
+    if (timer.value) {
+        clearInterval(timer.value);
+    }
+}
+
+watch(() => tradeStore.tradeStatus, (newValue, oldValue) => {
+    newValue === 1 ? setTimer() : clearTimer();
+}, {
+    immediate: true,
+})
+
 
 /**
  * * 自选股票功能
@@ -348,19 +331,19 @@ const handleDragOver = (event) => {
  */
 const handleDrop = (event, targetIndex) => {
     event.preventDefault();
-    
+
     if (draggedIndex.value === null || draggedIndex.value === targetIndex) {
         return;
     }
-    
+
     // 重新排列数据
     const newOrder = [...sortedQuotesData.value];
     const draggedItem = newOrder.splice(draggedIndex.value, 1)[0];
     newOrder.splice(targetIndex, 0, draggedItem);
-    
+
     // 更新卡片顺序
     cardOrder.value = newOrder.map(quote => quote.代码);
-    
+
     // 保存到localStorage
     saveCardOrder();
 }
@@ -398,7 +381,7 @@ const filteredQuotesData = computed(() => {
     if (selectedStocks.value.length === 0) {
         return CommonQuotesData.value;
     }
-    return CommonQuotesData.value.filter(quote => 
+    return CommonQuotesData.value.filter(quote =>
         selectedStocks.value.includes(quote.代码)
     );
 })
@@ -411,11 +394,11 @@ const sortedQuotesData = computed(() => {
     if (cardOrder.value.length === 0 || filtered.length === 0) {
         return filtered;
     }
-    
+
     // 根据保存的顺序重新排列
     const ordered = [];
     const remaining = [...filtered];
-    
+
     // 先按照保存的顺序添加
     cardOrder.value.forEach(code => {
         const index = remaining.findIndex(quote => quote.代码 === code);
@@ -423,10 +406,10 @@ const sortedQuotesData = computed(() => {
             ordered.push(remaining.splice(index, 1)[0]);
         }
     });
-    
+
     // 添加新的未排序的项目
     ordered.push(...remaining);
-    
+
     return ordered;
 })
 
@@ -518,357 +501,5 @@ onUnmounted(() => {
 })
 </script>
 <style scoped lang="scss">
-.market-effect-container {
-    box-sizing: border-box;
-    padding: 20px;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-}
-
-.effect-bar {
-    align-items: center;
-    background-color: rgb(214, 214, 214);
-    border-radius: 10px;
-    box-sizing: border-box;
-    display: flex;
-    height: 10px;
-    justify-content: space-between;
-    overflow: hidden;
-    width: 100%;
-}
-
-/* 图例样式 */
-.legend {
-    &-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 20px;
-        margin: 15px 20px;
-        flex-wrap: wrap;
-    }
-
-    &-item {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 12px;
-        color: #333;
-    }
-
-    &-color {
-        width: 12px;
-        height: 12px;
-        flex-shrink: 0;
-    }
-
-    &-text {
-        white-space: nowrap;
-        font-weight: 500;
-    }
-}
-
-// 图例颜色类
-.rise-color {
-    background-color: rgb(255, 0, 0);
-}
-
-.fall-color {
-    background-color: rgb(134, 211, 83);
-}
-
-.flat-color {
-    background-color: #0000ff;
-}
-
-.suspended-color {
-    background-color: rgb(214, 214, 214);
-}
-
-/* 毛玻璃按钮样式 */
-.bottom-button {
-    position: absolute;
-    bottom: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    left: calc(50% - 100px);
-    padding: 12px 24px;
-    width: 200px;
-    font-size: 14px;
-    font-weight: 500;
-    color: #333;
-    cursor: pointer;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-
-    /* 毛玻璃效果 */
-    background: rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-
-    /* 过渡动画 */
-    transition: all 0.3s ease;
-
-    &:hover {
-        background: rgba(255, 255, 255, 0.3);
-        backdrop-filter: blur(15px);
-        -webkit-backdrop-filter: blur(15px);
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-        transform: translateY(-2px);
-    }
-
-    &:active {
-        transform: translateY(0);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-}
-
-/* 指数行情卡片样式 */
-.quotes-cards-container {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-    padding: 0 10px;
-    height: 100%;
-    overflow: auto;
-    flex: 1;
-    align-content: start;
-    grid-auto-rows: 180px;
-
-    &::-webkit-scrollbar {
-        display: none;
-    }
-}
-
-.quote {
-    &-card {
-        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-        border-radius: 16px;
-        padding: 10px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-        border: 1px solid rgba(0, 0, 0, 0.05);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
-        height: 160px;
-        overflow: hidden;
-        cursor: grab;
-
-        &::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            // background: linear-gradient(90deg, #e0e0e0, #e0e0e0);
-            transition: background 0.3s ease;
-        }
-
-        // &.card-rise::before {
-        //     background: linear-gradient(90deg, #ff4757, #ff6b7a);
-        // }
-
-        // &.card-fall::before {
-        //     background: linear-gradient(90deg, #2ed573, #7bed9f);
-        // }
-
-        // &.card-flat::before {
-        //     background: linear-gradient(90deg, #5352ed, #7f8ff4);
-        // }
-
-        &:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-        }
-
-        &:active {
-            cursor: grabbing;
-        }
-
-        &[draggable="true"]:hover {
-            border-color: #409eff;
-            box-shadow: 0 8px 15px rgba(64, 158, 255, 0.3);
-        }
-
-        // 拖拽状态样式
-        &.dragging {
-            opacity: 0.5;
-            transform: rotate(5deg);
-        }
-
-        // 拖拽目标样式
-        &.drag-over {
-            border-color: #67c23a;
-            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-        }
-    }
-
-    &-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 5px;
-    }
-
-    &-name {
-        font-size: 16px;
-        font-weight: 600;
-        color: #2c3e50;
-        letter-spacing: 0.5px;
-    }
-
-    &-code {
-        font-size: 12px;
-        color: #7f8c8d;
-        background: #ecf0f1;
-        padding: 4px 8px;
-        border-radius: 6px;
-        font-family: 'Courier New', monospace;
-    }
-
-    &-price-section {
-        display: flex;
-        justify-content: space-between;
-        align-items: baseline;
-        margin-bottom: 5px;
-        padding-bottom: 5px;
-        border-bottom: 1px solid #ecf0f1;
-    }
-
-    &-current-price {
-        font-size: 24px;
-        font-weight: 700;
-        color: #2c3e50;
-        letter-spacing: 2px;
-    }
-
-    &-change {
-        font-size: 14px;
-        font-weight: 600;
-        padding: 4px 8px;
-        border-radius: 8px;
-        letter-spacing: 0.3px;
-    }
-
-    &-details {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    &-detail {
-        &-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 8px;
-        }
-
-        &-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            flex: 1;
-            padding: 4px 0;
-            text-align: center;
-        }
-    }
-}
-.price{
-    &-rise {
-        color: #ff4757;
-    }
-    &-fall {
-        color: #2ed573;
-    }
-    &-flat {
-        color: #5352ed;
-    }
-}
-// 涨跌幅样式
-.change {
-    &-rise {
-        color: #ffffff;
-        background: linear-gradient(135deg, #ff4757, #ff6b7a);
-    }
-
-    &-fall {
-        color: #ffffff;
-        background: linear-gradient(135deg, #2ed573, #7bed9f);
-    }
-
-    &-flat {
-        color: #ffffff;
-        background: linear-gradient(135deg, #5352ed, #7f8ff4);
-    }
-}
-
-// 详情标签和值
-.detail {
-    &-label {
-        font-size: 12px;
-        color: #7f8c8d;
-        font-weight: 500;
-    }
-
-    &-value {
-        font-size: 13px;
-        color: #2c3e50;
-        font-weight: 600;
-        font-family: 'Courier New', monospace;
-    }
-}
-
-/* 自选股票弹窗样式 */
-.selection-container {
-    max-height: 400px;
-    overflow-y: auto;
-    
-    .tags-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        padding: 10px 0;
-        
-        .stock-tag {
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 14px;
-            padding: 8px 16px;
-            border-radius: 20px;
-            
-            &:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            }
-        }
-    }
-}
-
-.dialog-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-}
-
-/* 自定义滚动条样式 */
-.selection-container::-webkit-scrollbar {
-    width: 6px;
-}
-
-.selection-container::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.selection-container::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 3px;
-    
-    &:hover {
-        background: rgba(0, 0, 0, 0.3);
-    }
-}
+@use './style/index.scss';
 </style>
